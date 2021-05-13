@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schemalist gettext-domain="manga">
+	<schema id="io.github.chaoticdev.manga" path="/io/github/chaoticdev/manga/">
+	</schema>
+</schemalist>

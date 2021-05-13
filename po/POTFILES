@@ -1,0 +1,7 @@
+data/io.github.chaoticdev.manga.desktop.in
+data/io.github.chaoticdev.manga.appdata.xml.in
+data/io.github.chaoticdev.manga.gschema.xml
+src/window.ui
+src/main.vala
+src/window.vala
+
