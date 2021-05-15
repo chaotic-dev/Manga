@@ -28,16 +28,37 @@ namespace Manga {
 		[GtkChild]
 		Hdy.ViewSwitcherBar bottom_switcher;
 		[GtkChild]
-		Hdy.Deck deck;
+		Hdy.Deck page_deck;
+		[GtkChild]
+		Hdy.Deck image_deck;
+		[GtkChild]
+		Gtk.Button next_btn;
+		[GtkChild]
+		Gtk.Button prev_btn;
+		[GtkChild]
+		Gtk.ListBox chapter_list;
+		[GtkChild]
+		Gtk.ScrolledWindow manga_chapters_page;
+		[GtkChild]
+		Gtk.Box chapter_read_page;
+
+		private GLib.ListStore chapters_list_model;
+		private string current_chapter_id;
+		private string current_manga_id;
 
 		private string cache_dir;
 
 		public Window (Gtk.Application app) {
 			Object (application: app);
-			squeezer.notify["visible-child"].connect (on_squeezer_notify);
 			string tmp_dir_path = GLib.Environment.get_tmp_dir ();
 			cache_dir = GLib.Path.build_filename(tmp_dir_path, "io.github.chaoticdev.manga");
 			GLib.DirUtils.create (cache_dir, 0777);
+
+			chapters_list_model = new GLib.ListStore (typeof (Mangadex.Chapter));
+            chapter_list.bind_model (chapters_list_model, chapter_render_function);
+
+            image_deck.get_swipe_tracker ().allow_mouse_drag = true;
+			image_deck.can_swipe_forward = true;
 
 			var session = new Soup.Session ();
 			var req = session.request ("https://api.mangadex.org/manga?order[updatedAt]=desc&limit=1");
@@ -48,36 +69,57 @@ namespace Manga {
 			var root = parser.get_root ().get_object ();
 			var results = root.get_array_member ("results");
 			var result = results.get_object_element (0);
-			var data = result.get_object_member ("data");
-			string id = data.get_string_member ("id");
 
-			req = session.request (@"https://api.mangadex.org/manga/$id/feed");
-			res = req.send ();
-			parser.load_from_stream (res);
-			res.close ();
-			root = parser.get_root ().get_object ();
-			var chapters = root.get_array_member ("results");
-			var chapter_obj = chapters.get_object_element (0);
-			var chapter = new Mangadex.Chapter (chapter_obj);
-
-			var chapter_links = chapter.get_pages_data_saver ();
-			add_pages (chapter_links);
-
-			deck.get_swipe_tracker ().allow_mouse_drag = true;
+			var manga = new Mangadex.Manga (result);
+			show_manga (manga);
 
 		}
 
-		private void add_pages (string[] chapter_links) {
+		private Gtk.Widget chapter_render_function (GLib.Object obj) {
+		    var chapter = (Mangadex.Chapter) obj;
+		    var ret = new Gtk.Label ("%s: %s".printf(chapter.chapter, chapter.title));
+		    ret.show ();
+		    return ret;
+		}
+
+		private void show_manga (Mangadex.Manga manga) {
+		    stderr.printf ("Showing manga %s...\n", manga.id);
+            page_deck.set_visible_child (manga_chapters_page);
+            if (manga.id == current_manga_id) {
+                return;
+            }
+            current_manga_id = manga.id;
+            chapters_list_model.remove_all ();
+            var chapters = manga.get_chapters ();
+            for (int i = 0; i < chapters.length; i++) {
+                chapters_list_model.append ((GLib.Object)chapters[i]);
+            }
+
+		}
+
+		private void show_chapter (Mangadex.Chapter chapter) {
+		stderr.printf ("Showing chapter %s...\n", chapter.id);
+		    page_deck.set_visible_child (chapter_read_page);
+		    if (current_chapter_id == chapter.id) {
+		        return;
+		    }
+		    current_chapter_id = chapter.id;
+		    clear_deck (image_deck);
+		    var chapter_links = chapter.get_pages_data_saver ();
 		    var session = new Soup.Session ();
 		    for (int i = 0; i < chapter_links.length; i++) {
+		        var img = new Gtk.Image ();
+		        img.show ();
+		        image_deck.add (img);
 			    var url = chapter_links[i];
                 var fname = GLib.Path.get_basename (url);
                 var fpath = GLib.Path.build_filename (cache_dir, fname);
                 var file = GLib.File.new_for_path (fpath);
                 if (file.query_exists ()) {
-                    var img = new Gtk.Image.from_file (fpath);
-			        img.show ();
-			        deck.add (img);
+                    img.set_from_file (fpath);
+                    // var buf = img.pixbuf;
+                    // buf = buf.scale_simple (buf.width / 2, buf.height / 2, Gdk.InterpType.BILINEAR);
+                    // img.pixbuf = buf;
                 } else {
                     var file_stream = file.create (FileCreateFlags.NONE);
                     var req = session.request (url);
@@ -87,9 +129,12 @@ namespace Manga {
                             file_stream.splice (stream, OutputStreamSpliceFlags.CLOSE_SOURCE);
 	                        file_stream.close ();
 
-	                        var img = new Gtk.Image.from_file (fpath);
+	                        img.set_from_file (fpath);
+	                        // var buf = img.pixbuf;
+                         //    buf = buf.scale_simple (buf.width / 2, buf.height / 2, Gdk.InterpType.BILINEAR);
+                         //    img .pixbuf = buf;
 			                img.show ();
-			                deck.add (img);
+			                image_deck.add (img);
 			            } catch (ThreadError e) {
 			                string msg = e.message;
 			                stderr.printf(@"Thread error: $msg\n");
@@ -98,11 +143,43 @@ namespace Manga {
                     });
 			    }
 			}
+			// TODO: Handle case where there are no pages or an error occurs
+			image_deck.set_visible_child (image_deck.get_children ().data);
 		}
 
-		private void on_squeezer_notify (ParamSpec pspec) {
+        [GtkCallback]
+		private void on_squeezer_visible_child_notify (ParamSpec pspec) {
 		    var child = squeezer.get_visible_child ();
             bottom_switcher.set_reveal (child != headerbar_switcher);
+		}
+
+        [GtkCallback]
+		private void on_chapter_list_row_activated (Gtk.ListBoxRow row) {
+		    var index = row.get_index ();
+		    show_chapter ((Mangadex.Chapter) chapters_list_model.get_item (index));
+		}
+        [GtkCallback]
+		private void on_next_btn_clicked () {
+		    if (image_deck.visible_child != null) {
+                image_deck.navigate (Hdy.NavigationDirection.FORWARD);
+            }
+		}
+        [GtkCallback]
+		private void on_prev_btn_clicked () {
+		    if (image_deck.visible_child != null) {
+		        image_deck.navigate (Hdy.NavigationDirection.BACK);
+		    }
+		}
+
+		[GtkCallback]
+		private void on_back_btn_clicked () {
+		    page_deck.navigate (Hdy.NavigationDirection.BACK);
+		}
+
+		private inline void clear_deck (Hdy.Deck deck) {
+            deck.@foreach ((widget) => {
+		        deck.remove (widget);
+		    });
 		}
 	}
 }

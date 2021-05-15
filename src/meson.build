@@ -1,7 +1,8 @@
 manga_sources = [
   'main.vala',
   'window.vala',
-  'mangadex/chapter.vala'
+  'mangadex/chapter.vala',
+  'mangadex/manga.vala'
 ]
 
 manga_deps = [

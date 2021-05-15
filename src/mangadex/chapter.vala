@@ -1,23 +1,23 @@
 namespace Mangadex {
-    class Chapter {
-        string id {get; private set;}
-        string volume {get; private set;}
-        string chapter {get; private set;}
-        string title {get; private set;}
-        string language {get; private set;}
-        string manga_id {get; private set;}
-        string group_id {get; private set;}
-        string user_id {get; private set;}
-        string published_at {get; private set;}
-        string created_at {get; private set;}
-        string updated_at {get; private set;}
-        string version {get; private set;}
-        bool is_valid {get; private set;}
+    class Chapter : GLib.Object {
+        public string id {get; private set;}
+        public string volume {get; private set;}
+        public string chapter {get; private set;}
+        public string title {get; private set;}
+        public string language {get; private set;}
+        public string manga_id {get; private set;}
+        public string group_id {get; private set;}
+        public string user_id {get; private set;}
+        public string published_at {get; private set;}
+        public string created_at {get; private set;}
+        public string updated_at {get; private set;}
+        public string version {get; private set;}
+        public bool is_valid {get; private set;}
         private string[] chapters = {};
         private string[] chapters_data_saver = {};
         private string hash;
 
-        public Chapter (Json.Object obj) {
+        public Chapter (Json.Object obj)  {
             is_valid = true;
             if (!obj.has_member ("result") || obj.get_string_member ("result") != "ok") {
                 // TODO: Use Logger
@@ -29,6 +29,7 @@ namespace Mangadex {
             if (data.get_string_member ("type") != "chapter") {
                 // TODO: Use Logger
                 stderr.puts ("Result does not have type 'chapter'\n");
+                is_valid = false;
                 return;
             }
             id = data.get_string_member ("id");
@@ -77,7 +78,7 @@ namespace Mangadex {
             }
             var session = new Soup.Session ();
             var parser = new Json.Parser ();
-            var req = session.request ("https://api.mangadex.org/at-home/server/%s".printf (id));
+            var req = session.request (@"https://api.mangadex.org/at-home/server/$id");
             var res = req.send ();
             parser.load_from_stream (res);
             res.close ();
