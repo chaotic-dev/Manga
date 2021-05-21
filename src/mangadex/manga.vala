@@ -1,6 +1,23 @@
+/* manga.vala
+ *
+ * Copyright 2021 ChaoticDev
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
 namespace Mangadex {
 
-    class Manga {
+    class Manga : GLib.Object {
         private GLib.HashTable<string, string> title_lookup;
         private GLib.HashTable<string, string> description_lookup;
         private GLib.HashTable<string, GLib.Array<string>> alt_title_lookup;
@@ -101,7 +118,7 @@ namespace Mangadex {
             return desc == null ? "" : desc;
         }
 
-        public Chapter[] get_chapters () {
+        public Chapter[] get_chapters (string lang = "en") {
             if (!is_valid) {
                 return {};
             }
@@ -113,22 +130,25 @@ namespace Mangadex {
             uint limit = 0;
 
             do {
-                var req = session.request (@"https://api.mangadex.org/manga/$id/feed?order[volume]=desc&order[chapter]=desc&offset=$offset");
+                var req = session.request (@"https://api.mangadex.org/manga/$id/feed?locales[0]=$lang&order[volume]=desc&order[chapter]=desc&offset=$offset");
 			    var res = req.send ();
 			    parser.load_from_stream (res);
 			    res.close ();
 
-                offset++;
+
+                stdout.printf (@"Getting chapters page $offset\n");
 
 			    var root = parser.get_root ().get_object ();
 			    total_results = (uint) root.get_int_member ("total");
 			    limit = (uint) root.get_int_member ("limit");
+			    offset += limit;
 			    var chapters = root.get_array_member ("results");
 
                 for (int i = 0; i < chapters.get_length(); i++) {
-			        ret += new Chapter (chapters.get_object_element (i));
+                    var chapter_obj = chapters.get_object_element (i);
+			        ret += new Chapter (chapter_obj);
 			    }
-			} while (offset * limit <= total_results);
+			} while (offset <= total_results);
 			return ret;
         }
     }

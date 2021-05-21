@@ -38,11 +38,16 @@ namespace Manga {
 		[GtkChild]
 		Gtk.ListBox chapter_list;
 		[GtkChild]
+		Gtk.ListBox recent_manga_list;
+		[GtkChild]
 		Gtk.ScrolledWindow manga_chapters_page;
 		[GtkChild]
 		Gtk.Box chapter_read_page;
+		[GtkChild]
+		Gtk.ScrolledWindow reader_scrolled_window;
 
 		private GLib.ListStore chapters_list_model;
+		private GLib.ListStore mangas_list_model;
 		private string current_chapter_id;
 		private string current_manga_id;
 
@@ -56,22 +61,17 @@ namespace Manga {
 
 			chapters_list_model = new GLib.ListStore (typeof (Mangadex.Chapter));
             chapter_list.bind_model (chapters_list_model, chapter_render_function);
+            mangas_list_model = new GLib.ListStore (typeof (Mangadex.Manga));
+            recent_manga_list.bind_model (mangas_list_model, manga_render_function);
 
             image_deck.get_swipe_tracker ().allow_mouse_drag = true;
 			image_deck.can_swipe_forward = true;
 
-			var session = new Soup.Session ();
-			var req = session.request ("https://api.mangadex.org/manga?order[updatedAt]=desc&limit=1");
-			var parser = new Json.Parser ();
-			var res = req.send ();
-			parser.load_from_stream (res);
-			res.close ();
-			var root = parser.get_root ().get_object ();
-			var results = root.get_array_member ("results");
-			var result = results.get_object_element (0);
-
-			var manga = new Mangadex.Manga (result);
-			show_manga (manga);
+            var mangas = Mangadex.Api.get_recent_mangas ();
+            stdout.printf ("Manga count: %d\n", mangas.length);
+            for (int i = 0; i < mangas.length; i++) {
+                mangas_list_model.append ((GLib.Object) mangas[i]);
+            }
 
 		}
 
@@ -80,6 +80,13 @@ namespace Manga {
 		    var ret = new Gtk.Label ("%s: %s".printf(chapter.chapter, chapter.title));
 		    ret.show ();
 		    return ret;
+		}
+
+		private Gtk.Widget manga_render_function (GLib.Object obj) {
+            var manga = (Mangadex.Manga) obj;
+            var ret = new Gtk.Label (manga.get_title());
+            ret.show ();
+            return ret;
 		}
 
 		private void show_manga (Mangadex.Manga manga) {
@@ -147,6 +154,17 @@ namespace Manga {
 			image_deck.set_visible_child (image_deck.get_children ().data);
 		}
 
+		private void reset_scroll_window (Gtk.ScrolledWindow window) {
+		    var hadj = window.hadjustment;
+		    var vadj = window.vadjustment;
+
+		    hadj.set_value (0);
+		    window.hadjustment = hadj;
+
+		    vadj.set_value (0);
+		    window.vadjustment = vadj;
+		}
+
         [GtkCallback]
 		private void on_squeezer_visible_child_notify (ParamSpec pspec) {
 		    var child = squeezer.get_visible_child ();
@@ -158,16 +176,25 @@ namespace Manga {
 		    var index = row.get_index ();
 		    show_chapter ((Mangadex.Chapter) chapters_list_model.get_item (index));
 		}
+
+		[GtkCallback]
+		private void on_recent_manga_list_row_activated (Gtk.ListBoxRow row) {
+		    var index = row.get_index ();
+		    show_manga ((Mangadex.Manga) mangas_list_model.get_item (index));
+		}
+
         [GtkCallback]
 		private void on_next_btn_clicked () {
 		    if (image_deck.visible_child != null) {
                 image_deck.navigate (Hdy.NavigationDirection.FORWARD);
+                reset_scroll_window (reader_scrolled_window);
             }
 		}
         [GtkCallback]
 		private void on_prev_btn_clicked () {
 		    if (image_deck.visible_child != null) {
 		        image_deck.navigate (Hdy.NavigationDirection.BACK);
+		        reset_scroll_window (reader_scrolled_window);
 		    }
 		}
 
