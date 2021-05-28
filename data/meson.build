@@ -1,6 +1,6 @@
 desktop_file = i18n.merge_file(
-  input: 'io.github.chaoticdev.manga.desktop.in',
-  output: 'io.github.chaoticdev.manga.desktop',
+  input: 'io.github.chaotic-dev.manga.desktop.in',
+  output: 'io.github.chaotic-dev.manga.desktop',
   type: 'desktop',
   po_dir: '../po',
   install: true,
@@ -15,8 +15,8 @@ if desktop_utils.found()
 endif
 
 appstream_file = i18n.merge_file(
-  input: 'io.github.chaoticdev.manga.appdata.xml.in',
-  output: 'io.github.chaoticdev.manga.appdata.xml',
+  input: 'io.github.chaotic-dev.manga.appdata.xml.in',
+  output: 'io.github.chaotic-dev.manga.appdata.xml',
   po_dir: '../po',
   install: true,
   install_dir: join_paths(get_option('datadir'), 'appdata')
@@ -29,7 +29,7 @@ if appstream_util.found()
   )
 endif
 
-install_data('io.github.chaoticdev.manga.gschema.xml',
+install_data('io.github.chaotic-dev.manga.gschema.xml',
   install_dir: join_paths(get_option('datadir'), 'glib-2.0/schemas')
 )
 

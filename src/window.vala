@@ -17,7 +17,7 @@
  */
 
 namespace Manga {
-	[GtkTemplate (ui = "/io/github/chaoticdev/manga/window.ui")]
+	[GtkTemplate (ui = "/io/github/chaotic-dev/manga/window.ui")]
 	public class Window : Gtk.ApplicationWindow {
 		[GtkChild]
 		Hdy.HeaderBar header_bar;
@@ -56,7 +56,7 @@ namespace Manga {
 		public Window (Gtk.Application app) {
 			Object (application: app);
 			string tmp_dir_path = GLib.Environment.get_tmp_dir ();
-			cache_dir = GLib.Path.build_filename(tmp_dir_path, "io.github.chaoticdev.manga");
+			cache_dir = GLib.Path.build_filename(tmp_dir_path, "io.github.chaotic-dev.manga");
 			GLib.DirUtils.create (cache_dir, 0777);
 
 			chapters_list_model = new GLib.ListStore (typeof (Mangadex.Chapter));

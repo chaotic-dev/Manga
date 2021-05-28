@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <gresources>
-  <gresource prefix="/io/github/chaoticdev/manga">
+  <gresource prefix="/io/github/chaotic-dev/manga">
     <file>window.ui</file>
   </gresource>
 </gresources>

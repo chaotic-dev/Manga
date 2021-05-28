@@ -1,5 +1,5 @@
 {
-    "app-id" : "io.github.chaoticdev.manga",
+    "app-id" : "io.github.chaotic-dev.manga",
     "runtime" : "org.gnome.Platform",
     "runtime-version" : "3.38",
     "sdk" : "org.gnome.Sdk",
