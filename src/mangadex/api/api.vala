@@ -19,17 +19,21 @@ namespace Mangadex.Api {
     Manga[] get_recent_mangas () {
         var session = new Soup.Session ();
 		var req = session.request ("https://api.mangadex.org/manga?order[updatedAt]=desc");
-		var parser = new Json.Parser ();
-		var res = req.send ();
-		parser.load_from_stream (res);
-		res.close ();
-		var root = parser.get_root ().get_object ();
-		var results = root.get_array_member ("results");
-
 		Manga[] ret = {};
-		for (int i = 0; i < results.get_length (); i++) {
-            var result = results.get_object_element (i);
-			ret += new Mangadex.Manga (result);
+
+		try {
+		    var parser = new Json.Parser ();
+		    var res = req.send ();
+		    parser.load_from_stream (res);
+		    res.close ();
+		    var root = parser.get_root ().get_object ();
+		    var results = root.get_array_member ("results");
+		    for (int i = 0; i < results.get_length (); i++) {
+                var result = results.get_object_element (i);
+			    ret += new Mangadex.Manga (result);
+		    }
+		} catch (GLib.Error e) {
+            stderr.printf ("Unable to parse results: %s\n", e.message);
 		}
 
 		return ret;

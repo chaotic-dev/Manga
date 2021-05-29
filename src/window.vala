@@ -84,7 +84,7 @@ namespace Manga {
 
 		private Gtk.Widget manga_render_function (GLib.Object obj) {
             var manga = (Mangadex.Manga) obj;
-            var ret = new Gtk.Label (manga.get_title());
+            var ret = new MangaListing (manga);
             ret.show ();
             return ret;
 		}

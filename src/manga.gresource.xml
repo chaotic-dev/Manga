@@ -3,4 +3,10 @@
   <gresource prefix="/io/github/chaotic-dev/manga">
     <file>window.ui</file>
   </gresource>
+  <gresource prefix="/io/github/chaotic-dev/manga">
+    <file>manga_listing.ui</file>
+  </gresource>
+  <gresource prefix="/io/github/chaotic-dev/manga/images">
+    <file alias="placeholder.jpg">../data/placeholder.jpg</file>
+  </gresource>
 </gresources>
