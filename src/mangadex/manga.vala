@@ -130,23 +130,38 @@ namespace Mangadex {
             uint limit = 0;
 
             do {
-                var req = session.request (@"https://api.mangadex.org/manga/$id/feed?locales[0]=$lang&order[volume]=desc&order[chapter]=desc&offset=$offset");
-			    var res = req.send ();
-			    parser.load_from_stream (res);
-			    res.close ();
+                try {
+                    var req = session.request (@"https://api.mangadex.org/manga/$id/feed?translatedLanguage[0]=$lang&order[volume]=desc&order[chapter]=desc&offset=$offset");
+			        stderr.printf ("Chapter Query: %s\n", req.uri.to_string (false));
+			        var res = req.send ();
+			        parser.load_from_stream (res);
+			        res.close ();
 
 
-                stdout.printf (@"Getting chapters page $offset\n");
+                    stdout.printf (@"Getting chapters page $offset\n");
 
-			    var root = parser.get_root ().get_object ();
-			    total_results = (uint) root.get_int_member ("total");
-			    limit = (uint) root.get_int_member ("limit");
-			    offset += limit;
-			    var chapters = root.get_array_member ("results");
+			        var root = parser.get_root ().get_object ();
+			        if (root.has_member ("result") && root.get_string_member ("result") == "error") {
+                        stderr.printf ("Error getting chapter results: \n");
+                        var errors = root.get_array_member ("errors");
+                        for (int i = 0; i < errors.get_length (); i++) {
+                            var err = errors.get_object_element (i);
+                            stderr.printf ("\t%s: %s\n", err.get_string_member ("title"), err.get_string_member ("detail"));
+                        }
+                        break;
+			        }
+			        total_results = (uint) root.get_int_member ("total");
+			        limit = (uint) root.get_int_member ("limit");
+			        offset += limit;
+			        var chapters = root.get_array_member ("results");
 
-                for (int i = 0; i < chapters.get_length(); i++) {
-                    var chapter_obj = chapters.get_object_element (i);
-			        ret += new Chapter (chapter_obj);
+                    for (int i = 0; i < chapters.get_length(); i++) {
+                        var chapter_obj = chapters.get_object_element (i);
+			            ret += new Chapter (chapter_obj);
+			        }
+			    } catch (GLib.Error e) {
+			        stderr.printf ("Error parsing chapter list: %s\n", e.message);
+			        break;
 			    }
 			} while (offset <= total_results);
 			return ret;

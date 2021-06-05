@@ -18,7 +18,7 @@
 
 int main (string[] args) {
     Hdy.init();
-	var app = new Gtk.Application ("io.github.chaotic-dev.manga", ApplicationFlags.FLAGS_NONE);
+	var app = new Gtk.Application ("io.github.chaoticdev.manga", ApplicationFlags.FLAGS_NONE);
 	app.activate.connect (() => {
 		var win = app.active_window;
 		if (win == null) {
