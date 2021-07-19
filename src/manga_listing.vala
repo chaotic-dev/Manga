@@ -1,5 +1,5 @@
 namespace Manga {
-    [GtkTemplate (ui = "/io/github/chaotic-dev/manga/manga_listing.ui")]
+    [GtkTemplate (ui = "/io/github/chaotic-dev/manga/ui/manga_listing.ui")]
     class MangaListing : Gtk.Grid {
         [GtkChild]
         Gtk.Image cover_image;
@@ -16,6 +16,7 @@ namespace Manga {
                 description = description.substring (0, 1000);
             }
             description_label.label = description;
+            cover_image.set_from_file (manga.get_cover ());
         }
     }
 }

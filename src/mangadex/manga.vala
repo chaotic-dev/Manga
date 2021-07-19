@@ -33,6 +33,7 @@ namespace Mangadex {
         public string status {get; private set;}
         public string content_rating {get; private set;}
         public bool is_valid {get; private set;}
+        private string cover_art_id;
 
         public Manga (Json.Object obj) {
             is_valid = true;
@@ -91,6 +92,27 @@ namespace Mangadex {
             demographic = attributes.get_string_member ("publicationDemographic");
             status = attributes.get_string_member ("status");
             content_rating = attributes.get_string_member ("contentRating");
+
+            var relationships = obj.get_array_member ("relationships");
+
+            for (int i = 0; i < relationships.get_length (); i++) {
+                var rel = relationships.get_object_element (i);
+                string type = rel.get_string_member ("type");
+                switch (type) {
+                    case "author":
+                        author_id = rel.get_string_member ("id");
+                        break;
+                    case "artist":
+                        artist_id = rel.get_string_member ("id");
+                        break;
+                    case "cover_art":
+                        cover_art_id = rel.get_string_member ("id");
+                        break;
+                    default:
+                        stderr.printf (@"Manga {$id} has unknown relationship: $type\n");
+                        break;
+                }
+            }
 
         }
 
@@ -165,6 +187,24 @@ namespace Mangadex {
 			    }
 			} while (offset <= total_results);
 			return ret;
+        }
+
+        public string get_cover () {
+            string cover = Api.get_manga_cover (cover_art_id);
+            string url = @"https://uploads.mangadex.org/covers/$id/$cover.256.jpg";
+            string basedir = Util.Cache.create_path (id);
+            string file_path = GLib.Path.build_filename (basedir, @"$cover.256.jpg");
+            var file = GLib.File.new_for_path (file_path);
+            var session = new Soup.Session ();
+            if (!file.query_exists ()) {
+                var file_stream = file.create (FileCreateFlags.NONE);
+                var req = session.request (url);
+                var res = req.send ();
+                file_stream.splice (res, OutputStreamSpliceFlags.CLOSE_SOURCE);
+	            file_stream.close ();
+            }
+
+            return file_path;
         }
     }
 }

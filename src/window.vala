@@ -17,7 +17,7 @@
  */
 
 namespace Manga {
-	[GtkTemplate (ui = "/io/github/chaotic-dev/manga/window.ui")]
+	[GtkTemplate (ui = "/io/github/chaotic-dev/manga/ui/window.ui")]
 	public class Window : Gtk.ApplicationWindow {
 		[GtkChild]
 		Hdy.HeaderBar header_bar;
@@ -45,6 +45,8 @@ namespace Manga {
 		Gtk.Box chapter_read_page;
 		[GtkChild]
 		Gtk.ScrolledWindow reader_scrolled_window;
+		[GtkChild]
+		Hdy.Carousel featured_carousel;
 
 		private GLib.ListStore chapters_list_model;
 		private GLib.ListStore mangas_list_model;
@@ -55,9 +57,8 @@ namespace Manga {
 
 		public Window (Gtk.Application app) {
 			Object (application: app);
-			string tmp_dir_path = GLib.Environment.get_tmp_dir ();
-			cache_dir = GLib.Path.build_filename(tmp_dir_path, "io.github.chaotic-dev.manga");
-			GLib.DirUtils.create (cache_dir, 0777);
+			cache_dir = Util.Cache.initialize ();
+			stderr.printf (@"Using cache directory: $cache_dir\n");
 
 			chapters_list_model = new GLib.ListStore (typeof (Mangadex.Chapter));
             chapter_list.bind_model (chapters_list_model, chapter_render_function);
@@ -67,17 +68,27 @@ namespace Manga {
             image_deck.get_swipe_tracker ().allow_mouse_drag = true;
 			image_deck.can_swipe_forward = true;
 
+            // Initialize home page
             var mangas = Mangadex.Api.get_recent_mangas ();
             stdout.printf ("Manga count: %d\n", mangas.length);
             for (int i = 0; i < mangas.length; i++) {
                 mangas_list_model.append ((GLib.Object) mangas[i]);
             }
 
+            mangas = Mangadex.Api.get_featured_mangas ();
+            stdout.printf ("Featured count: %d\n", mangas.length);
+            for (int i = 0; i < mangas.length; i++) {
+                var img = new Gtk.Image.from_file (mangas[i].get_cover ());
+                img.show ();
+                featured_carousel.insert (img, -1);
+            }
+
+
 		}
 
 		private Gtk.Widget chapter_render_function (GLib.Object obj) {
 		    var chapter = (Mangadex.Chapter) obj;
-		    var ret = new Gtk.Label ("%s: %s".printf(chapter.chapter, chapter.title));
+		    var ret = new ChapterListing (chapter);
 		    ret.show ();
 		    return ret;
 		}
@@ -95,6 +106,7 @@ namespace Manga {
             if (manga.id == current_manga_id) {
                 return;
             }
+            Util.Cache.create_path (manga.id);
             current_manga_id = manga.id;
             chapters_list_model.remove_all ();
             var chapters = manga.get_chapters ();
@@ -113,6 +125,7 @@ namespace Manga {
 		    current_chapter_id = chapter.id;
 		    clear_deck (image_deck);
 		    var chapter_links = chapter.get_pages_data_saver ();
+		    var chapter_cache_dir = Util.Cache.create_path (chapter.manga_id, chapter.id);
 		    var session = new Soup.Session ();
 		    for (int i = 0; i < chapter_links.length; i++) {
 		        var img = new Gtk.Image ();
@@ -120,7 +133,7 @@ namespace Manga {
 		        image_deck.add (img);
 			    var url = chapter_links[i];
                 var fname = GLib.Path.get_basename (url);
-                var fpath = GLib.Path.build_filename (cache_dir, fname);
+                var fpath = GLib.Path.build_filename (chapter_cache_dir, fname);
                 var file = GLib.File.new_for_path (fpath);
                 if (file.query_exists ()) {
                     img.set_from_file (fpath);

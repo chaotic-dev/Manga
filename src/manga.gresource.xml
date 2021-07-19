@@ -1,10 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <gresources>
   <gresource prefix="/io/github/chaotic-dev/manga">
-    <file>window.ui</file>
+    <file>ui/window.ui</file>
   </gresource>
   <gresource prefix="/io/github/chaotic-dev/manga">
-    <file>manga_listing.ui</file>
+    <file>ui/manga_listing.ui</file>
+  </gresource>
+  <gresource prefix="/io/github/chaotic-dev/manga">
+    <file>ui/chapter_listing.ui</file>
   </gresource>
   <gresource prefix="/io/github/chaotic-dev/manga/images">
     <file alias="placeholder.jpg">../data/placeholder.jpg</file>
